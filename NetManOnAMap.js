@@ -128,10 +128,16 @@ function leave(){
 //-------------------- 初始化
 function initialize() {
 //生成地图
-	vMap = new AMap.Map(document.getElementById("MapWindow"),{
-		scrollWheel:true,
-		showBuildingBlock:false,
-	});
+	// 异常捕捉，避免后面的代码因为错误执行不下去
+	try{
+		vMap = new AMap.Map(document.getElementById("MapWindow"),{
+			scrollWheel:true,
+			showBuildingBlock:false,
+		});
+	}catch(error){
+
+	}
+	
 	if (!vMap) { 
 		alert('无法连接高德地图！');
 		return;
