@@ -741,6 +741,7 @@ function fGenMenu(){
 						"sep1": "---------",
 						"editborder":{name:"编辑边界",icon: "cut"},
 						'find':{name:'查找网元',icon:'find'},
+						'getdist':{name:'基站距离',icon:'find'},
 						"sep2": "---------",
 						"load": {name:"装入新文件",icon: "copy"},
 						"add":{name:"添加数据", icon: "paste"},
@@ -762,6 +763,7 @@ function fGenMenu(){
 						"dele": {name:"删除本单元", icon: "delete"},
 						"backup":{name:"备选基站"},
 						'find':{name:'查找网元',icon:'find'},
+						'getdist':{name:'基站距离',icon:'find'},
 						"sep1": "---------",
 						"load": {name:"装入新文件",icon: "copy"},
 						"add":{name:"添加数据", icon: "paste"},
@@ -786,6 +788,7 @@ function fGenMenu(){
 							options:{11: '用户点', 12: '室外基站站址', 13: '室内分布站址',21:'管道',22:'光缆',
 								23:'电路',31:'行政区划',32:'光网格',33:'网络节点'}, selected: "12"},
 						'find':{name:'查找网元',icon:'find'},
+						'getdist':{name:'基站距离',icon:'find'},
 						"sep1": "---------",
 						"enter": {name:"进入下层"},
 						"return": {name:"返回上层"},
@@ -984,6 +987,47 @@ var func = {
 		myLock.menu = true;
 		fOpenSearchWindow(vMap,myInfoWindow,{x:0,y:0});
 		document.getElementById("iSearchName").focus();
+	},
+	'getdist': function(){
+		if($("#MapWindow").data('contextMenu')) $("#MapWindow").contextMenu("hide");
+		var zoom = vMap.getZoom();
+		if(zoom > myZoom){
+			var result = {'EVDO': -1, 'LTE': -1};// <0 not available, >=0 distance
+			var target = vMap.containTolnglat(new AMap.Pixel(myLock.x, myLock.y)), compare = null;
+			// 此处只需要两种情况，落成 / 规划
+			// 暂时只处理 exist == true 的基站距离
+			for (var i=0; i<vaPtrCellDisplayed.length; i++){
+				var cell = vaPtrCellDisplayed[i].cellptr;
+				if(!cell || cell.type.slice(0,2) != "12") continue;
+				var hasEVDO = 0;
+				var hasLTE = 0;
+				var distNow;
+				for (var j=0; j<cell.devices.length;j++){
+					var progress = parseInt(cell.devices[j].progress);
+					if (!hasEVDO && (cell.devices[j].system =='3G'|| cell.devices[j].system =='2G')){
+						if (progress < vPreDefDProg.length) hasEVDO = vPreDefDProg[progress].exist;	
+					} else if (!hasLTE && cell.devices[j].system =='4G'){// } && cell.devices[j].subsys=='800M'){
+						if (progress < vPreDefDProg.length) hasLTE = vPreDefDProg[progress].exist;
+					}
+					if(hasEVDO && hasLTE) break;//一点优化
+				}
+
+		  		if(vaPtrCellDisplayed[i].center){
+		  			compare = vaPtrCellDisplayed[i].center.getPosition();
+		  			distNow = target.distance(compare);
+		  			if(hasEVDO && (result['EVDO'] == -1 || result['EVDO'] > distNow)){
+		  				result['EVDO'] = distNow;
+		  			}
+		  			if(hasLTE && (result['LTE'] == -1 || result['LTE'] > distNow)){
+		  				result['LTE'] = distNow;
+		  			}
+		  		}
+		  	}
+			console.log(result);
+		}else if(confirm("只有放大才能计算距离，是否放大？")){
+			vMap.setZoom(myZoom+1);
+			this.getdist();// do again
+		}
 	}
 };
 
